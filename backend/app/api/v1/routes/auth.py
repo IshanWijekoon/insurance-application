@@ -27,12 +27,13 @@ REFRESH_COOKIE = "refresh_token"
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
+    # Cross-origin frontend (Railway web → api) needs SameSite=None + Secure.
     response.set_cookie(
         key=REFRESH_COOKIE,
         value=token,
         httponly=True,
         secure=settings.is_production,
-        samesite="lax",
+        samesite="none" if settings.is_production else "lax",
         max_age=settings.refresh_token_days * 24 * 3600,
         path=f"{settings.api_v1_prefix}/auth",
     )
@@ -104,7 +105,12 @@ def logout(
     refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE)] = None,
 ):
     AuthService(db).logout(refresh_token)
-    response.delete_cookie(REFRESH_COOKIE, path=f"{settings.api_v1_prefix}/auth")
+    response.delete_cookie(
+        REFRESH_COOKIE,
+        path=f"{settings.api_v1_prefix}/auth",
+        secure=settings.is_production,
+        samesite="none" if settings.is_production else "lax",
+    )
     return MessageResponse(message="Signed out.")
 
 

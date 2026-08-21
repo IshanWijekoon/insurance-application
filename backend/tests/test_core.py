@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from app.core.config import normalize_database_url
 from app.core.enums import DamageSeverity, DamageType, RepairAction
 from app.core.parts import normalize_part_name, part_display_name
 from app.core.security import hash_password, verify_password
@@ -13,6 +14,16 @@ from app.estimation.rules import decide_action
 from app.market.confidence import ConfidenceInput, score_price_confidence
 from app.schemas.auth import LoginRequest
 from app.schemas.common import MoneyRange
+
+
+def test_normalize_database_url_for_railway():
+    assert normalize_database_url("postgres://u:p@host:5432/db") == "postgresql+psycopg://u:p@host:5432/db"
+    assert (
+        normalize_database_url("postgresql://u:p@host:5432/db?sslmode=require")
+        == "postgresql+psycopg://u:p@host:5432/db?sslmode=require"
+    )
+    assert normalize_database_url("postgresql+psycopg://u:p@host/db") == "postgresql+psycopg://u:p@host/db"
+    assert normalize_database_url("sqlite+pysqlite:///./insurance.db") == "sqlite+pysqlite:///./insurance.db"
 
 
 def test_demo_local_email_is_accepted():

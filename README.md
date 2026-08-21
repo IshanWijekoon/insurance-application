@@ -44,6 +44,12 @@ docker compose up --build
 
 The seeded customer already has a 2018 Toyota Prius (`WP ABC-1234`).
 
+## Deploy on Railway
+
+See **[docs/RAILWAY.md](docs/RAILWAY.md)** for the full checklist: Postgres + Redis plugins, api / worker / web services, Cloudflare R2 (or S3), JWT and AI keys, CORS, and post-deploy verification.
+
+Summary: production needs `APP_ENV=production`, a strong `JWT_SECRET`, real `AI_PROVIDER` / `VISION_PROVIDER` + API keys, S3-compatible `STORAGE_*` credentials, and `NEXT_PUBLIC_API_URL` on the web service pointing at the public API URL.
+
 ## Run without Docker
 
 1. Start PostgreSQL 16, Redis 7, and MinIO.

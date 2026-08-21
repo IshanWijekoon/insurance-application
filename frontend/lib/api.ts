@@ -1,5 +1,25 @@
 const TOKEN_KEY = "aiclaims.access";
 
+/** Absolute API origin when frontend and API are on different hosts (Railway). Empty = same-origin / Next rewrite. */
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+export function apiUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API_BASE}${path}`;
+}
+
+export function wsUrl(path: string): string {
+  const base = API_BASE;
+  if (base) {
+    const u = new URL(base);
+    const proto = u.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${u.host}${path}`;
+  }
+  const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
+  const host = typeof window !== "undefined" ? window.location.host : "localhost:3000";
+  return `${proto}://${host}${path}`;
+}
+
 export function getToken() {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
@@ -56,15 +76,16 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!(init.body instanceof FormData) && !headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
   }
-  const res = await fetch(path, { ...init, headers, credentials: "include" });
+  const url = apiUrl(path);
+  const res = await fetch(url, { ...init, headers, credentials: "include" });
   if (res.status === 401 && !path.includes("/auth/")) {
     try {
-      const refreshed = await fetch("/api/v1/auth/refresh", { method: "POST", credentials: "include" });
+      const refreshed = await fetch(apiUrl("/api/v1/auth/refresh"), { method: "POST", credentials: "include" });
       if (refreshed.ok) {
         const body = await refreshed.json();
         setToken(body.access_token);
         headers.set("Authorization", `Bearer ${body.access_token}`);
-        return parse(await fetch(path, { ...init, headers, credentials: "include" }));
+        return parse(await fetch(url, { ...init, headers, credentials: "include" }));
       }
     } catch {
       clearToken();

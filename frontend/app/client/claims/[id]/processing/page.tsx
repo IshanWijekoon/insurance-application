@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { get, getToken } from "@/lib/api";
+import { get, getToken, wsUrl } from "@/lib/api";
 import type { ClaimStatusPayload } from "@/lib/types";
 
 const ORDER = [
@@ -33,8 +33,7 @@ export default function ProcessingPage() {
     let ws: WebSocket | null = null;
     const token = getToken();
     if (token) {
-      const proto = window.location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${proto}://${window.location.host}/api/v1/ws?token=${token}`);
+      ws = new WebSocket(`${wsUrl("/api/v1/ws")}?token=${token}`);
       ws.onmessage = (ev) => {
         const data = JSON.parse(ev.data);
         if (data.claim_id === id && data.type === "claim.completed") {

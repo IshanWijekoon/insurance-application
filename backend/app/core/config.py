@@ -8,12 +8,21 @@ production process that is configured like a development one.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "staging", "production"]
+
+
+def normalize_database_url(url: str) -> str:
+    """Rewrite Railway/Heroku-style URLs to the psycopg3 SQLAlchemy dialect."""
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url.removeprefix("postgres://")
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    return url
 
 
 class Settings(BaseSettings):
@@ -48,8 +57,9 @@ class Settings(BaseSettings):
 
     # ── Redis / Celery ──────────────────────────────────────
     redis_url: str = "redis://localhost:6379/0"
-    celery_broker_url: str = "redis://localhost:6379/1"
-    celery_result_backend: str = "redis://localhost:6379/2"
+    # Empty = derive from REDIS_URL (Railway exposes a single Redis URL).
+    celery_broker_url: str = ""
+    celery_result_backend: str = ""
 
     # ── Object storage ──────────────────────────────────────
     storage_endpoint: str = "http://localhost:9000"
@@ -159,6 +169,19 @@ class Settings(BaseSettings):
     @classmethod
     def _upper(cls, v: str) -> str:
         return v.upper()
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_database_url(cls, v: str) -> str:
+        return normalize_database_url(v)
+
+    @model_validator(mode="after")
+    def _derive_celery_urls(self) -> Self:
+        if not self.celery_broker_url:
+            self.celery_broker_url = self.redis_url
+        if not self.celery_result_backend:
+            self.celery_result_backend = self.redis_url
+        return self
 
     def validate_for_environment(self) -> list[str]:
         """Return blocking misconfigurations. Empty list means safe to start."""

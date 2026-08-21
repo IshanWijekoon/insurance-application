@@ -40,7 +40,7 @@ services:
   api:
     build:
       context: ./backend
-      dockerfile: ../docker/backend.Dockerfile
+      dockerfile: Dockerfile
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://insurance:insurance@postgres:5432/insurance
@@ -51,6 +51,8 @@ services:
       STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
       STORAGE_ACCESS_KEY: minioadmin
       STORAGE_SECRET_KEY: minioadmin
+      RUN_MIGRATIONS: "true"
+      RUN_SEED: "true"
     ports:
       - "8000:8000"
     depends_on:
@@ -65,7 +67,7 @@ services:
   worker:
     build:
       context: ./backend
-      dockerfile: ../docker/backend.Dockerfile
+      dockerfile: Dockerfile
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://insurance:insurance@postgres:5432/insurance
@@ -76,6 +78,8 @@ services:
       STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
       STORAGE_ACCESS_KEY: minioadmin
       STORAGE_SECRET_KEY: minioadmin
+      RUN_MIGRATIONS: "false"
+      RUN_SEED: "false"
     depends_on:
       postgres:
         condition: service_healthy
